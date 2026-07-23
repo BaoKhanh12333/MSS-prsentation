@@ -2165,6 +2165,20 @@
                 if (currentSlideIndex > 0) goToSlide(currentSlideIndex - 1, 'left');
             }
 
+            // Yêu cầu/thoát Fullscreen trình duyệt thật (giống PowerPoint/Canva)
+            function requestFS() {
+                const el = document.documentElement;
+                const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+                if (req) req.call(el).catch(() => { });
+            }
+
+            function exitFS() {
+                const isFs = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+                if (!isFs) return;
+                const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+                if (exit) exit.call(document).catch(() => { });
+            }
+
             // Bật chế độ Trình chiếu
             btnPres.addEventListener('click', () => {
                 isPresentationMode = true;
@@ -2173,17 +2187,15 @@
                 btnPres.classList.add('hidden');
                 arrows.classList.remove('hidden');
                 arrows.classList.add('flex');
+                requestFS();
 
-                // Xác định slide đang ở trong tầm nhìn (viewport) khi cuộn để mở đúng slide đó
-                if (!body.classList.contains('presentation-active')) {
-                    // Logic cơ bản: lấy slide 0, hoặc có thể làm thuật toán IntersectionObserver
-                }
                 goToSlide(currentSlideIndex, 'right');
                 resetIdleTimer();
             });
 
             // Về chế độ Cuộn
             function exitPresentation() {
+                if (!isPresentationMode) return;
                 isPresentationMode = false;
                 body.classList.remove('presentation-active');
                 btnScroll.classList.add('hidden');
@@ -2193,6 +2205,7 @@
                 progressBar.style.width = '0';
                 clearTimeout(idleTimer);
                 controlPanel.classList.remove('controls-idle');
+                exitFS();
 
                 // Trả các slide về hiển thị block bình thường
                 slides.forEach(slide => {
@@ -2206,6 +2219,14 @@
                 // Cuộn tới slide đang xem dở
                 slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
+
+            // Nếu người dùng thoát fullscreen bằng phím Esc/F11 của trình duyệt, đồng bộ lại UI
+            ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(evt => {
+                document.addEventListener(evt, () => {
+                    const isFs = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+                    if (!isFs && isPresentationMode) exitPresentation();
+                });
+            });
 
             btnScroll.addEventListener('click', exitPresentation);
             exitBtn.addEventListener('click', exitPresentation);
