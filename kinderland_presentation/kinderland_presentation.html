@@ -1,0 +1,2240 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kinderland - Chuyển đổi Microservices</title>
+
+    <!-- Tailwind CSS (đã build tĩnh, offline — không phụ thuộc CDN) -->
+    <link rel="stylesheet" href="kinderland_assets/tailwind.css">
+
+    <!-- Google Fonts (tự host, offline) -->
+    <link rel="stylesheet" href="kinderland_assets/fonts/google-fonts.css">
+
+    <!-- FontAwesome (tự host, offline) -->
+    <link rel="stylesheet" href="kinderland_assets/fontawesome/css/all.min.css">
+
+    <style>
+        :root {
+            --color-primary: #a81f30;
+            --color-secondary: #6f1420;
+            --color-bg-scroll: #f8fafc;
+            --color-text-main: #0f172a;
+            --color-text-muted: #64748b;
+        }
+
+        body {
+            background-color: var(--color-bg-scroll);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--color-text-main);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* Container chuẩn tỉ lệ 16:9 */
+        .slide-container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 1280px;
+            height: 720px;
+            margin: 40px auto;
+            padding: 50px 70px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(168, 31, 48, 0.08);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid rgba(168, 31, 48, 0.1);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Họa tiết trang trí nền slide */
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(168, 31, 48, 0.05) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide-container::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(100, 116, 139, 0.05) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide-content {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Typography */
+        h1,
+        h2,
+        h3 {
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #f43f5e, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Chế độ Trình chiếu (Fullscreen) */
+        .presentation-active .slide-container {
+            display: none;
+            margin: 0;
+            border-radius: 0;
+            width: 1280px;
+            height: 720px;
+            max-width: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            z-index: 100;
+        }
+
+        .presentation-active .slide-container.active-slide {
+            display: flex;
+        }
+
+        .presentation-active {
+            background-color: #000;
+            overflow: hidden;
+        }
+
+        /* Animations */
+        .slide-enter-right {
+            animation: slideInFromRight 0.6s cubic-bezier(0.25, 1, 0.5, 1) both;
+        }
+
+        .slide-enter-left {
+            animation: slideInFromLeft 0.6s cubic-bezier(0.25, 1, 0.5, 1) both;
+        }
+
+        @keyframes slideInFromRight {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) translateX(100px) scale(var(--slide-scale, 1));
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) translateX(0) scale(var(--slide-scale, 1));
+            }
+        }
+
+        @keyframes slideInFromLeft {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) translateX(-100px) scale(var(--slide-scale, 1));
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) translateX(0) scale(var(--slide-scale, 1));
+            }
+        }
+
+        /* Slide 2 — Mục lục: thẻ từng mục */
+        #slide-2 .toc-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 0.75rem;
+            background: #ffffff;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        #slide-2 .toc-item:hover {
+            background: rgba(168, 31, 48, 0.06);
+            border-color: rgba(168, 31, 48, 0.15);
+            box-shadow: 0 6px 16px rgba(168, 31, 48, 0.12);
+            transform: translateX(4px);
+        }
+
+        #slide-2 .toc-icon {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.5rem;
+            background: #fce7e8;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #slide-2 .toc-item:hover .toc-icon {
+            transform: scale(1.12);
+            background: var(--color-primary);
+            color: #fff;
+        }
+
+        #slide-2 .toc-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #334155;
+            line-height: 1.25;
+            transition: color 0.25s ease;
+        }
+
+        #slide-2 .toc-item:hover .toc-text {
+            color: var(--color-primary);
+        }
+
+        /* Slide 4 — Bài toán & Mục tiêu: timeline dọc Vấn đề → Mục tiêu → Thách thức */
+        #slide-4 .tl-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+        }
+
+        #slide-4 .tl-line {
+            position: absolute;
+            top: 1.75rem;
+            bottom: 1.75rem;
+            left: 1.75rem;
+            width: 3px;
+            background: linear-gradient(180deg, #fca5a5, #86efac, #f4a4ad);
+            border-radius: 3px;
+            z-index: 0;
+        }
+
+        #slide-4 .tl-step {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+        }
+
+        #slide-4 .tl-marker {
+            flex-shrink: 0;
+            width: 3.5rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        #slide-4 .tl-circle {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            color: #fff;
+            border: 4px solid #fff;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+        }
+
+        #slide-4 .tl-circle-red {
+            background: #ef4444;
+        }
+
+        #slide-4 .tl-circle-green {
+            background: #22c55e;
+            width: 4rem;
+            height: 4rem;
+            font-size: 1.5rem;
+        }
+
+        #slide-4 .tl-circle-brand {
+            background: var(--color-primary);
+        }
+
+        #slide-4 .tl-body {
+            flex: 1;
+            border-radius: 1.25rem;
+            padding: 1.1rem 1.4rem;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #slide-4 .tl-step:hover .tl-body {
+            transform: translateX(6px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+        }
+
+        #slide-4 .tl-body-red {
+            background: #fef2f2;
+        }
+
+        #slide-4 .tl-body-green {
+            background: #f0fdf4;
+        }
+
+        #slide-4 .tl-body-brand {
+            background: #fdf1f1;
+        }
+
+        #slide-4 .tl-body-featured {
+            border: 2px solid #4ade80;
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.15);
+            padding: 1.35rem 1.4rem;
+        }
+
+        #slide-4 .tl-head {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-bottom: 0.75rem;
+        }
+
+        #slide-4 .tl-num {
+            font-size: 1.5rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        #slide-4 .tl-num-red {
+            color: #ef4444;
+        }
+
+        #slide-4 .tl-num-green {
+            color: #16a34a;
+        }
+
+        #slide-4 .tl-num-brand {
+            color: var(--color-primary);
+        }
+
+        #slide-4 .tl-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
+
+        #slide-4 .tl-tag {
+            margin-left: auto;
+            padding: 0.3rem 0.8rem;
+            border-radius: 9999px;
+            background: #16a34a;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        #slide-4 .tl-lead {
+            color: #334155;
+            margin-bottom: 0.6rem;
+        }
+
+        #slide-4 .tl-chip-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.6rem;
+        }
+
+        #slide-4 .tl-chip-grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        #slide-4 .tl-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: 0.65rem;
+            padding: 0.55rem 0.7rem;
+            font-size: 0.85rem;
+            color: #334155;
+            line-height: 1.3;
+        }
+
+        /* Slide 6 — Bản đồ Microservice: phân nhóm & badge N/A */
+        #slide-6 .row-infra {
+            background: rgba(100, 116, 139, 0.05);
+        }
+
+        #slide-6 .row-biz {
+            background: rgba(168, 31, 48, 0.03);
+        }
+
+        #slide-6 .tech-dot {
+            display: inline-block;
+            width: 0.45rem;
+            height: 0.45rem;
+            border-radius: 9999px;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        #slide-6 .tech-dot-infra {
+            background: #94a3b8;
+        }
+
+        #slide-6 .tech-dot-biz {
+            background: var(--color-primary);
+        }
+
+        #slide-6 .cell-na {
+            display: inline-block;
+            padding: 0.1rem 0.5rem;
+            border-radius: 9999px;
+            background: #f1f5f9;
+            color: #94a3b8;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        /* Slide 7 — Backend: lưới logo công nghệ thay ảnh trang trí */
+        #slide-7 .tech-logo-panel {
+            background: #f8fafc;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: 1.1rem;
+            padding: 0.75rem;
+        }
+
+        #slide-7 .tech-logo-tile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            padding: 0.65rem 0.4rem;
+            border-radius: 0.65rem;
+            background: #ffffff;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #slide-7 .tech-logo-tile:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+            border-color: rgba(168, 31, 48, 0.2);
+        }
+
+        #slide-7 .tech-logo-tile i {
+            font-size: 1.4rem;
+        }
+
+        #slide-7 .tech-logo-tile span {
+            font-size: 0.62rem;
+            font-weight: 700;
+            color: #475569;
+            text-align: center;
+            line-height: 1.15;
+        }
+
+        /* Slide 12 — Luồng đặt hàng End-to-End: sơ đồ luồng thay vì list dọc */
+        #slide-12 .flow-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0.6rem;
+        }
+
+        #slide-12 .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: #f8fafc;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: 0.75rem;
+        }
+
+        #slide-12 .status-chip {
+            padding: 0.3rem 0.8rem;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            color: #fff;
+        }
+
+        #slide-12 .status-arrow {
+            color: #cbd5e1;
+            font-size: 0.7rem;
+        }
+
+        #slide-12 .status-c1 {
+            background: #94a3b8;
+        }
+
+        #slide-12 .status-c2 {
+            background: #f4a4ad;
+        }
+
+        #slide-12 .status-c3 {
+            background: var(--color-primary);
+        }
+
+        #slide-12 .status-c4 {
+            background: #6ee7b7;
+            color: #065f46;
+        }
+
+        #slide-12 .status-c5 {
+            background: #34d399;
+        }
+
+        #slide-12 .status-c6 {
+            background: #059669;
+        }
+
+        #slide-12 .flow-legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.75rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        #slide-12 .flow-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        #slide-12 .flow-legend-sync {
+            color: #2563eb;
+        }
+
+        #slide-12 .flow-legend-async {
+            color: #ea580c;
+        }
+
+        #slide-12 .flow-row {
+            display: flex;
+            align-items: stretch;
+            gap: 0.6rem;
+        }
+
+        #slide-12 .flow-node {
+            flex: 1;
+            position: relative;
+            background: #fff;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 0.9rem;
+            padding: 1.15rem 1rem;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            transition: all 0.25s ease;
+        }
+
+        #slide-12 .flow-node:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+            border-color: rgba(168, 31, 48, 0.2);
+        }
+
+        #slide-12 .flow-node-num {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.65rem;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--color-primary);
+        }
+
+        #slide-12 .flow-node-num-muted {
+            color: #94a3b8;
+        }
+
+        #slide-12 .flow-node-icon {
+            font-size: 1.15rem;
+            color: var(--color-primary);
+            margin-bottom: 0.4rem;
+            display: block;
+        }
+
+        #slide-12 .flow-node-icon-muted {
+            color: #94a3b8;
+        }
+
+        #slide-12 .flow-node h4 {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.3rem;
+        }
+
+        #slide-12 .flow-node p {
+            font-size: 0.72rem;
+            line-height: 1.35;
+            color: #64748b;
+        }
+
+        #slide-12 .flow-tag {
+            display: inline-block;
+            font-size: 0.6rem;
+            font-weight: 800;
+            padding: 0.12rem 0.5rem;
+            border-radius: 9999px;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        #slide-12 .flow-tag-sync {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        #slide-12 .flow-tag-async {
+            background: #ffedd5;
+            color: #ea580c;
+        }
+
+        #slide-12 .flow-arrow {
+            align-self: center;
+            flex-shrink: 0;
+            color: #cbd5e1;
+            font-size: 1rem;
+        }
+
+        #slide-12 .flow-vconnector {
+            align-self: center;
+            color: #cbd5e1;
+            font-size: 1rem;
+        }
+
+        #slide-12 .flow-node-optional {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            box-shadow: none;
+        }
+
+        #slide-12 .flow-branch-connector {
+            flex-shrink: 0;
+            width: 5.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.2rem;
+            color: #94a3b8;
+        }
+
+        #slide-12 .flow-branch-connector span {
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+
+        #slide-12 .flow-branch-connector i {
+            font-size: 0.9rem;
+            border-top: 2px dashed #cbd5e1;
+            width: 100%;
+            padding-top: 0.4rem;
+            text-align: center;
+        }
+
+        #slide-12 .flow-insight-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.7rem 1rem;
+            background: #f8fafc;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: 0.75rem;
+        }
+
+        #slide-12 .flow-insight-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.72rem;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        #slide-12 .flow-insight-item strong {
+            color: #1e293b;
+        }
+
+        #slide-12 .flow-insight-item i {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        /* Slide 9 — Design Patterns: gap lưới & dòng caption đáy */
+        #slide-9 .dp-grid {
+            row-gap: 2.5rem;
+        }
+
+        #slide-9 .dp-note {
+            margin-top: 2.25rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        /* Slide 11 — Nghiệp vụ chính: căn giữa lưới card & bullet gọn */
+        #slide-11 .biz-grid {
+            align-content: center;
+        }
+
+        #slide-11 .biz-list {
+            padding-left: 1rem;
+        }
+
+        #slide-11 .biz-list li + li {
+            margin-top: 0.35rem;
+        }
+
+        /* Slide 14 — Kết quả đạt được: padding stat-tile */
+        #slide-14 .result-tile {
+            padding-top: 1.75rem;
+            padding-bottom: 1.75rem;
+        }
+
+        /* Slide 16 — Kết luận: chiều sâu nền tối + chip pattern + gradient "Cảm ơn" */
+        #slide-16 .concl-card {
+            background: radial-gradient(ellipse 900px 500px at 100% 0%, rgba(168, 31, 48, 0.22), transparent 60%),
+                #0f172a;
+        }
+
+        #slide-16 .concl-flag {
+            font-size: 11rem;
+        }
+
+        #slide-16 .concl-glow-red {
+            width: 320px;
+            height: 320px;
+            border-radius: 9999px;
+            background: radial-gradient(circle, rgba(168, 31, 48, 0.35), transparent 70%);
+            filter: blur(10px);
+            pointer-events: none;
+        }
+
+        #slide-16 .concl-glow-pink {
+            width: 260px;
+            height: 260px;
+            border-radius: 9999px;
+            background: radial-gradient(circle, rgba(244, 164, 173, 0.18), transparent 70%);
+            filter: blur(10px);
+            pointer-events: none;
+        }
+
+        #slide-16 .concl-tag {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(244, 164, 173, 0.18);
+            border-radius: 0.7rem;
+            padding: 0.55rem 0.75rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #f4a4ad;
+            transition: all 0.25s ease;
+        }
+
+        #slide-16 .concl-tag:hover {
+            background: rgba(244, 164, 173, 0.12);
+            border-color: rgba(244, 164, 173, 0.4);
+            transform: translateY(-2px);
+        }
+
+        #slide-16 .concl-tag i {
+            font-size: 0.9rem;
+            color: #ff8fa3;
+            flex-shrink: 0;
+        }
+
+        #slide-16 .concl-thanks {
+            background: linear-gradient(120deg, #ffffff 0%, #f4a4ad 45%, #ff5c72 75%, #a81f30 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.01em;
+            line-height: 1.35;
+            padding-top: 0.3em;
+            height: auto;
+            overflow: visible;
+        }
+
+        #slide-16 .concl-footnote {
+            margin-top: 0.85rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        /* Staggered Animations */
+        .presentation-active [data-stagger] {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .presentation-active [data-stagger].stagger-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Progress Bar */
+        #progressBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+            z-index: 250;
+            transition: width 0.3s ease;
+            display: none;
+        }
+
+        .presentation-active #progressBar {
+            display: block;
+        }
+
+        /* Auto-hide bảng điều khiển khi thuyết trình không thao tác */
+        #controlPanel {
+            transition: opacity 0.4s ease;
+        }
+
+        .presentation-active #controlPanel.controls-idle {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-bg-scroll);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary);
+        }
+
+        /* Slide Number Badge */
+        .slide-number-badge {
+            position: absolute;
+            bottom: 25px;
+            right: 30px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 4px 12px;
+            border-radius: 20px;
+            z-index: 20;
+        }
+
+        /* Tables */
+        .tech-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .tech-table th {
+            background: #fdf1f2;
+            color: #a81f30;
+            font-weight: 700;
+            padding: 14px 18px;
+            text-align: left;
+        }
+
+        .tech-table td {
+            padding: 14px 18px;
+            border-top: 1px solid #e2e8f0;
+            color: #334155;
+            line-height: 1.5;
+        }
+
+        .tech-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* Tech Badges */
+        .tech-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #fff1f2;
+            color: #e11d48;
+            border: 1px solid #ffe4e6;
+            margin: 4px;
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Image Masking */
+        .img-mask {
+            border-radius: 24px;
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Cải tiến Slide Header */
+        .slide-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+
+        /* Slide 1 (bìa): giữ nguyên bảng màu hồng-tím trước khi rebrand theo yêu cầu người dùng */
+        #slide-1 .bg-brand-50 {
+            background-color: #fff1f2;
+        }
+
+        #slide-1 .border-brand-100 {
+            border-color: #ffe4e6;
+        }
+
+        #slide-1 .text-brand-600 {
+            color: #e11d48;
+        }
+
+        #slide-1 .text-brand-500 {
+            color: #f43f5e;
+        }
+
+        #slide-1 .text-brand-800 {
+            color: #9333ea;
+        }
+    </style>
+</head>
+
+<body id="body">
+
+    <div id="progressBar"></div>
+
+    <!-- Bảng điều khiển trình chiếu -->
+    <div class="fixed bottom-6 right-6 z-[200] flex items-center gap-3 glass-panel px-5 py-3 rounded-full transition-all duration-500"
+        id="controlPanel">
+        <button id="btnScrollMode"
+            class="text-sm font-bold text-brand-600 hover:text-brand-500 px-3 py-1 rounded transition-all">
+            <i class="fa-solid fa-scroll mr-2"></i>Cuộn
+        </button>
+        <button id="btnPresentationMode"
+            class="text-sm font-bold text-white px-5 py-2 rounded-full bg-gradient-to-r from-brand-500 to-brand-800 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-brand-500/30">
+            <i class="fa-solid fa-play mr-2"></i>Trình Chiếu
+        </button>
+        <div id="presentationArrows" class="hidden flex items-center gap-2 border-l border-slate-200 pl-3">
+            <button id="prevSlide"
+                class="w-9 h-9 rounded-full bg-slate-100 hover:bg-brand-50 hover:text-brand-600 flex items-center justify-center transition-all text-slate-600">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span id="slideIndicator" class="text-sm font-mono text-brand-600 font-bold px-2">1 / 16</span>
+            <button id="nextSlide"
+                class="w-9 h-9 rounded-full bg-slate-100 hover:bg-brand-50 hover:text-brand-600 flex items-center justify-center transition-all text-slate-600">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <button id="exitPresentation" class="text-slate-400 hover:text-red-500 ml-2 transition-colors"
+                title="Thoát (Esc)">
+                <i class="fa-solid fa-expand text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Vùng chứa Slides -->
+    <div id="deckContainer" class="flex flex-col items-center py-10 w-full px-4 gap-12">
+
+        <!-- SLIDE 1: BÌA -->
+        <div class="slide-container active-slide" id="slide-1">
+            <div class="slide-content flex flex-row items-center">
+                <div class="w-7/12 pr-10">
+                    <div data-stagger="1"
+                        class="inline-block px-4 py-1.5 rounded-full bg-brand-50 border border-brand-100 text-brand-600 font-bold text-sm mb-6 tracking-wide uppercase">
+                        <i class="fa-solid fa-rocket mr-2"></i>Dự án Thương mại Điện tử
+                    </div>
+                    <h1 data-stagger="2" class="text-6xl md:text-7xl font-extrabold text-slate-900 leading-[1.1] mb-6">
+                        KINDER<span class="text-gradient">LAND</span>
+                    </h1>
+                    <p data-stagger="3" class="text-xl text-slate-600 font-medium mb-8 leading-relaxed">
+                        Hành trình chuyển đổi kiến trúc hệ thống từ <br>
+                        <span class="text-brand-500 font-bold line-through decoration-2">Modular Monolith</span> sang
+                        <span class="text-brand-800 font-bold">Microservices</span>.
+                    </p>
+                    <div data-stagger="4" class="flex flex-wrap gap-2">
+                        <span class="tech-badge">Spring Boot 3.5.9</span>
+                        <span class="tech-badge">Spring Cloud 2025</span>
+                        <span class="tech-badge">Java 21</span>
+                        <span class="tech-badge">React 18</span>
+                        <span class="tech-badge">Docker</span>
+                    </div>
+                </div>
+                <div class="w-5/12 h-full py-8 relative" data-stagger="5">
+                    <!-- Ảnh bé chơi đồ chơi + ảnh phụ tàu hỏa gỗ xếp lớp -->
+                    <img src="kinderland_assets/images/cover-baby-playing.jpg" class="img-mask"
+                        alt="Bé chơi đồ chơi Kinderland">
+                    <img src="kinderland_assets/images/cover-train-toy.jpg"
+                        class="absolute -bottom-6 -left-8 w-2/5 aspect-square object-cover rounded-2xl shadow-2xl border-4 border-white rotate-[-6deg]"
+                        alt="Đồ chơi tàu hỏa gỗ Kinderland">
+                </div>
+            </div>
+            <div class="slide-number-badge">01</div>
+        </div>
+
+        <!-- SLIDE 2: MỤC LỤC -->
+        <div class="slide-container" id="slide-2">
+            <div class="slide-content" style="display:flex;flex-direction:row;gap:2.5rem;height:100%;">
+                <div class="w-4/12 rounded-2xl bg-slate-900 relative overflow-hidden flex flex-col justify-center p-8"
+                    style="min-height:560px;" data-stagger="1">
+                    <div class="absolute -bottom-10 -right-10 opacity-10"><i
+                            class="fa-solid fa-list-check text-9xl text-white"></i></div>
+                    <span class="text-brand-400 font-bold text-sm uppercase tracking-wide mb-3 relative z-10">Mục
+                        lục</span>
+                    <h2 class="text-3xl font-extrabold text-white leading-tight relative z-10">Nội dung<br>bài thuyết
+                        trình</h2>
+                    <div class="mt-8 flex items-center gap-3 relative z-10">
+                        <span class="text-5xl font-extrabold text-brand-400">14</span>
+                        <span class="text-sm text-slate-400 leading-tight">phần trình bày<br>xuyên suốt dự án</span>
+                    </div>
+                </div>
+                <div class="w-8/12 grid grid-cols-2 gap-x-5 gap-y-3 content-between items-stretch">
+                    <div class="toc-item" data-stagger="2">
+                        <span class="toc-icon"><i class="fa-solid fa-rocket"></i></span>
+                        <span class="toc-text">1. Giới thiệu dự án</span>
+                    </div>
+                    <div class="toc-item" data-stagger="3">
+                        <span class="toc-icon"><i class="fa-solid fa-bullseye"></i></span>
+                        <span class="toc-text">2. Bài toán & Mục tiêu</span>
+                    </div>
+                    <div class="toc-item" data-stagger="4">
+                        <span class="toc-icon"><i class="fa-solid fa-sitemap"></i></span>
+                        <span class="toc-text">3. Kiến trúc tổng thể</span>
+                    </div>
+                    <div class="toc-item" data-stagger="5">
+                        <span class="toc-icon"><i class="fa-solid fa-cubes"></i></span>
+                        <span class="toc-text">4. Các Microservice trong hệ thống</span>
+                    </div>
+                    <div class="toc-item" data-stagger="6">
+                        <span class="toc-icon"><i class="fa-solid fa-server"></i></span>
+                        <span class="toc-text">5. Công nghệ sử dụng — Backend</span>
+                    </div>
+                    <div class="toc-item" data-stagger="7">
+                        <span class="toc-icon"><i class="fa-brands fa-react"></i></span>
+                        <span class="toc-text">6. Công nghệ sử dụng — Frontend</span>
+                    </div>
+                    <div class="toc-item" data-stagger="8">
+                        <span class="toc-icon"><i class="fa-solid fa-shapes"></i></span>
+                        <span class="toc-text">7. Các mẫu thiết kế (Design Patterns)</span>
+                    </div>
+                    <div class="toc-item" data-stagger="9">
+                        <span class="toc-icon"><i class="fa-solid fa-network-wired"></i></span>
+                        <span class="toc-text">8. Giao tiếp giữa các Service</span>
+                    </div>
+                    <div class="toc-item" data-stagger="10">
+                        <span class="toc-icon"><i class="fa-solid fa-briefcase"></i></span>
+                        <span class="toc-text">9. Các nghiệp vụ chính đã triển khai</span>
+                    </div>
+                    <div class="toc-item" data-stagger="11">
+                        <span class="toc-icon"><i class="fa-solid fa-route"></i></span>
+                        <span class="toc-text">10. Luồng đặt hàng End-to-End</span>
+                    </div>
+                    <div class="toc-item" data-stagger="12">
+                        <span class="toc-icon"><i class="fa-solid fa-shield-cat"></i></span>
+                        <span class="toc-text">11. Bảo mật & Phân quyền</span>
+                    </div>
+                    <div class="toc-item" data-stagger="13">
+                        <span class="toc-icon"><i class="fa-solid fa-trophy"></i></span>
+                        <span class="toc-text">12. Kết quả đạt được</span>
+                    </div>
+                    <div class="toc-item" data-stagger="14">
+                        <span class="toc-icon"><i class="fa-solid fa-road"></i></span>
+                        <span class="toc-text">13. Công nghệ còn thiếu & Hướng phát triển</span>
+                    </div>
+                    <div class="toc-item" data-stagger="15">
+                        <span class="toc-icon"><i class="fa-solid fa-flag-checkered"></i></span>
+                        <span class="toc-text">14. Kết luận</span>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">02</div>
+        </div>
+
+        <!-- SLIDE 3: GIỚI THIỆU -->
+        <div class="slide-container" id="slide-3">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">1. Giới thiệu dự án <span
+                            class="text-brand-500">Kinderland</span></h2>
+                </div>
+                <div class="flex h-full gap-8">
+                    <div class="w-1/2 flex flex-col justify-center">
+                        <p class="text-xl text-slate-600 mb-6" data-stagger="1">
+                            Hệ thống thương mại điện tử chuyên bán <strong>đồ chơi, sách thiếu nhi, quần áo</strong> và
+                            <strong>học liệu giáo dục</strong> cho trẻ em.
+                        </p>
+                        <div class="bg-brand-50 p-6 rounded-2xl mb-6 border border-brand-100" data-stagger="2">
+                            <h3 class="text-lg text-brand-600 mb-2"><i class="fa-solid fa-users mr-2"></i>Hai nhóm người
+                                dùng chính</h3>
+                            <ul class="list-disc pl-5 text-slate-700 space-y-2">
+                                <li><strong>Khách hàng:</strong> Duyệt sản phẩm, đánh giá, thêm giỏ, đặt hàng, thanh
+                                    toán, tích điểm, trả hàng.</li>
+                                <li><strong>Admin & Manager:</strong> Quản lý sản phẩm/khuyến mãi, đơn hàng, tài chính,
+                                    nhập/chuyển kho.</li>
+                            </ul>
+                        </div>
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200" data-stagger="3">
+                            <h3 class="text-lg text-slate-600 mb-2"><i
+                                    class="fa-solid fa-clock-rotate-left mr-2"></i>Bối cảnh</h3>
+                            <p class="text-slate-700">Được xây dựng ban đầu dạng <strong>Modular Monolith</strong>, sau
+                                đó chuyển đổi (migrate) sang kiến trúc <strong>Microservices</strong> để tăng khả năng
+                                mở rộng và chịu lỗi.</p>
+                        </div>
+                    </div>
+                    <div class="w-1/2" data-stagger="4">
+                        <!-- Ảnh E-commerce/Store -->
+                        <img src="kinderland_assets/images/slide3-store.jpg" class="img-mask" alt="E-commerce store">
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">03</div>
+        </div>
+
+        <!-- SLIDE 4: BÀI TOÁN & MỤC TIÊU -->
+        <div class="slide-container" id="slide-4">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">2. Bài toán & Mục tiêu chuyển đổi</h2>
+                </div>
+                <div class="tl-wrap relative mt-4">
+                    <div class="tl-line"></div>
+
+                    <div class="tl-step" data-stagger="1">
+                        <div class="tl-marker">
+                            <div class="tl-circle tl-circle-red"><i class="fa-solid fa-lock"></i></div>
+                        </div>
+                        <div class="tl-body tl-body-red">
+                            <div class="tl-head">
+                                <span class="tl-num tl-num-red">01</span>
+                                <h3 class="tl-title text-red-700">Hạn chế của Monolith</h3>
+                            </div>
+                            <div class="tl-chip-grid">
+                                <div class="tl-chip"><i class="fa-solid fa-xmark text-red-400"></i>Không thể mở rộng
+                                    (scale) độc lập.</div>
+                                <div class="tl-chip"><i class="fa-solid fa-xmark text-red-400"></i>Triển khai toàn
+                                    khối: sửa 1 dòng code phải deploy lại tất cả.</div>
+                                <div class="tl-chip"><i class="fa-solid fa-xmark text-red-400"></i>Coupling cao: Dính
+                                    chặt khóa ngoại JPA (Foreign Key).</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tl-step" data-stagger="2">
+                        <div class="tl-marker">
+                            <div class="tl-circle tl-circle-green"><i class="fa-solid fa-bullseye"></i></div>
+                        </div>
+                        <div class="tl-body tl-body-green tl-body-featured">
+                            <div class="tl-head">
+                                <span class="tl-num tl-num-green">02</span>
+                                <h3 class="tl-title text-green-700">Mục tiêu chuyển đổi</h3>
+                                <span class="tl-tag">Đích đến</span>
+                            </div>
+                            <div class="tl-chip-grid">
+                                <div class="tl-chip"><i class="fa-solid fa-check text-green-500"></i>Database per
+                                    Service.</div>
+                                <div class="tl-chip"><i class="fa-solid fa-check text-green-500"></i>Triển khai & mở
+                                    rộng riêng biệt, tăng chịu lỗi cục bộ.</div>
+                                <div class="tl-chip"><i class="fa-solid fa-check text-green-500"></i>Giữ nguyên
+                                    contract API với Frontend React.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tl-step" data-stagger="3">
+                        <div class="tl-marker">
+                            <div class="tl-circle tl-circle-brand"><i class="fa-solid fa-puzzle-piece"></i></div>
+                        </div>
+                        <div class="tl-body tl-body-brand">
+                            <div class="tl-head">
+                                <span class="tl-num tl-num-brand">03</span>
+                                <h3 class="tl-title text-brand-700">Thách thức lớn nhất</h3>
+                            </div>
+                            <p class="tl-lead">Phá vỡ coupling FK ở tầng JPA. Thay thế bằng:</p>
+                            <div class="tl-chip-grid tl-chip-grid-4">
+                                <div class="tl-chip">Tham chiếu ID lỏng.</div>
+                                <div class="tl-chip">Dữ liệu snapshot (Denormalization).</div>
+                                <div class="tl-chip">Giao tiếp OpenFeign (Sync).</div>
+                                <div class="tl-chip">Sự kiện qua Kafka (Async).</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">04</div>
+        </div>
+
+        <!-- SLIDE 5: KIẾN TRÚC -->
+        <div class="slide-container" id="slide-5">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">3. Kiến trúc tổng thể</h2>
+                </div>
+                <div class="flex flex-col items-center justify-center h-full" data-stagger="1">
+                    <!-- Sơ đồ kiến trúc: phân biệt rõ luồng Sync (nét liền) và Async (nét đứt qua Kafka) -->
+                    <div class="w-full bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="w-3 h-3 rounded-full bg-blue-400"></span>
+                            <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Đồng bộ (Sync) —
+                                request/response</span>
+                        </div>
+                        <div class="w-full flex justify-between items-center">
+                            <div class="text-center">
+                                <div
+                                    class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm">
+                                    <i class="fa-brands fa-react"></i></div>
+                                <p class="mt-2 text-sm font-bold text-slate-700">Client (React)</p>
+                            </div>
+                            <div class="flex-1 border-t-2 border-slate-300 mx-2 relative"><i
+                                    class="fa-solid fa-play absolute -right-1 -top-2 text-[10px] text-slate-300"></i>
+                            </div>
+                            <div class="text-center relative">
+                                <div
+                                    class="absolute -top-3 -right-3 bg-brand-500 text-white text-xs px-2 py-1 rounded z-10">
+                                    JWT Auth</div>
+                                <div
+                                    class="w-20 h-20 bg-brand-100 text-brand-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm border-2 border-brand-200">
+                                    <i class="fa-solid fa-door-open"></i></div>
+                                <p class="mt-2 text-sm font-bold text-slate-700">API Gateway</p>
+                            </div>
+                            <div class="flex-1 border-t-2 border-slate-300 mx-2 relative"><i
+                                    class="fa-solid fa-play absolute -right-1 -top-2 text-[10px] text-slate-300"></i>
+                            </div>
+                            <div class="text-center">
+                                <div
+                                    class="w-16 h-16 bg-slate-100 text-slate-600 rounded-full mx-auto flex items-center justify-center text-2xl shadow-sm">
+                                    <i class="fa-solid fa-network-wired"></i></div>
+                                <p class="mt-2 text-sm font-bold text-slate-700">Eureka Registry</p>
+                            </div>
+                            <div class="flex-1 border-t-2 border-slate-300 mx-2 relative"><i
+                                    class="fa-solid fa-play absolute -right-1 -top-2 text-[10px] text-slate-300"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="grid grid-cols-2 gap-1.5">
+                                    <div
+                                        class="w-9 h-9 bg-emerald-100 rounded flex items-center justify-center text-emerald-600 text-sm">
+                                        <i class="fa-solid fa-cube"></i></div>
+                                    <div
+                                        class="w-9 h-9 bg-emerald-100 rounded flex items-center justify-center text-emerald-600 text-sm">
+                                        <i class="fa-solid fa-cube"></i></div>
+                                    <div
+                                        class="w-9 h-9 bg-emerald-100 rounded flex items-center justify-center text-emerald-600 text-sm">
+                                        <i class="fa-solid fa-cube"></i></div>
+                                    <div
+                                        class="w-9 h-9 bg-emerald-100 rounded flex items-center justify-center text-emerald-600 text-sm">
+                                        <i class="fa-solid fa-cube"></i></div>
+                                </div>
+                                <p class="mt-2 text-sm font-bold text-slate-700">Microservices</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 mt-6 mb-3">
+                            <span class="w-3 h-3 rounded-full bg-slate-400"></span>
+                            <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Bất đồng bộ (Async) —
+                                sự kiện nghiệp vụ</span>
+                        </div>
+                        <div class="w-full flex justify-center items-center gap-6">
+                            <div class="text-center">
+                                <div class="flex justify-center gap-1.5">
+                                    <div
+                                        class="w-9 h-9 bg-emerald-100 rounded flex items-center justify-center text-emerald-600 text-sm">
+                                        <i class="fa-solid fa-cube"></i></div>
+                                    <div
+                                        class="w-9 h-9 bg-emerald-100 rounded flex items-center justify-center text-emerald-600 text-sm">
+                                        <i class="fa-solid fa-cube"></i></div>
+                                    <div
+                                        class="w-9 h-9 bg-emerald-100 rounded flex items-center justify-center text-emerald-600 text-sm">
+                                        <i class="fa-solid fa-cube"></i></div>
+                                </div>
+                                <p class="mt-2 text-sm font-bold text-slate-700">order / payment / product</p>
+                            </div>
+                            <div class="flex-1 max-w-[100px] relative flex flex-col items-center">
+                                <span
+                                    class="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">publish</span>
+                                <div class="w-full border-t-2 border-dashed border-slate-300 relative">
+                                    <i
+                                        class="fa-solid fa-caret-right absolute -right-1 -top-[7px] text-slate-300 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <div
+                                    class="w-16 h-16 bg-slate-100 text-slate-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm border-2 border-slate-200">
+                                    <i class="fa-solid fa-diagram-project"></i></div>
+                                <p class="mt-2 text-sm font-bold text-slate-700">Kafka Broker</p>
+                            </div>
+                            <div class="flex-1 max-w-[100px] relative flex flex-col items-center">
+                                <span
+                                    class="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">consume</span>
+                                <div class="w-full border-t-2 border-dashed border-slate-300 relative">
+                                    <i
+                                        class="fa-solid fa-caret-right absolute -right-1 -top-[7px] text-slate-300 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <div
+                                    class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm">
+                                    <i class="fa-solid fa-bell"></i></div>
+                                <p class="mt-2 text-sm font-bold text-slate-700">notification-service</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6 w-full mt-3" data-stagger="2">
+                        <div class="bg-white p-4 border-l-4 border-brand-500 rounded shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-1">API Gateway & Eureka</h4>
+                            <p class="text-sm text-slate-600">Gateway là cổng vào duy nhất, định tuyến và xác thực JWT.
+                                Các service tự khám phá nhau qua tên logic (lb://) nhờ Eureka.</p>
+                        </div>
+                        <div class="bg-white p-4 border-l-4 border-slate-400 rounded shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-1">Database per Service & Kafka</h4>
+                            <p class="text-sm text-slate-600">Mỗi service sở hữu DB PostgreSQL riêng. Giao tiếp bất đồng
+                                bộ, truyền tải sự kiện nghiệp vụ (đặt hàng, thanh toán) đi qua Kafka.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">05</div>
+        </div>
+
+        <!-- SLIDE 6: CÁC SERVICES -->
+        <div class="slide-container" id="slide-6">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">4. Bản đồ các Microservice</h2>
+                </div>
+                <div data-stagger="1" class="overflow-hidden mt-4">
+                    <table class="tech-table text-sm">
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Port</th>
+                                <th>Database</th>
+                                <th>Vai trò chính</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="row-infra">
+                                <td><span class="tech-dot tech-dot-infra"></span><strong>eureka-server</strong></td>
+                                <td>8761</td>
+                                <td><span class="cell-na">N/A</span></td>
+                                <td>Service Discovery (đăng ký & khám phá service)</td>
+                            </tr>
+                            <tr class="row-infra">
+                                <td><span class="tech-dot tech-dot-infra"></span><strong>api-gateway</strong></td>
+                                <td>8080</td>
+                                <td><span class="cell-na">N/A</span></td>
+                                <td>Cổng vào, định tuyến, xác thực JWT tập trung</td>
+                            </tr>
+                            <tr class="row-biz">
+                                <td><span class="tech-dot tech-dot-biz"></span><strong>auth-service</strong></td>
+                                <td>8081</td>
+                                <td><code
+                                        class="text-xs text-brand-600 bg-brand-50 px-1 rounded">kinderland_auth_db</code>
+                                </td>
+                                <td>Đăng ký/đăng nhập, JWT, tài khoản, địa chỉ</td>
+                            </tr>
+                            <tr class="row-biz">
+                                <td><span class="tech-dot tech-dot-biz"></span><strong>product-service</strong></td>
+                                <td>8082</td>
+                                <td><code
+                                        class="text-xs text-brand-600 bg-brand-50 px-1 rounded">kinderland_product_db</code>
+                                </td>
+                                <td>Sản phẩm, SKU, tồn kho, cửa hàng, khuyến mãi, S3</td>
+                            </tr>
+                            <tr class="row-biz">
+                                <td><span class="tech-dot tech-dot-biz"></span><strong>order-service</strong></td>
+                                <td>8083</td>
+                                <td><code
+                                        class="text-xs text-brand-600 bg-brand-50 px-1 rounded">kinderland_order_db</code>
+                                </td>
+                                <td>Giỏ hàng, đơn hàng, điểm thưởng, tài chính, trả hàng</td>
+                            </tr>
+                            <tr class="row-biz">
+                                <td><span class="tech-dot tech-dot-biz"></span><strong>payment-service</strong></td>
+                                <td>8085</td>
+                                <td><code
+                                        class="text-xs text-brand-600 bg-brand-50 px-1 rounded">kinderland_payment_db</code>
+                                </td>
+                                <td>Thanh toán VNPay & COD</td>
+                            </tr>
+                            <tr class="row-biz">
+                                <td><span class="tech-dot tech-dot-biz"></span><strong>notification-service</strong>
+                                </td>
+                                <td>8084</td>
+                                <td><span class="cell-na">N/A</span></td>
+                                <td>Gửi email (chào mừng) bất đồng bộ qua Kafka</td>
+                            </tr>
+                            <tr class="row-infra">
+                                <td><span class="tech-dot tech-dot-infra"></span><strong>kinderland-common</strong>
+                                </td>
+                                <td><span class="cell-na">N/A</span></td>
+                                <td><span class="cell-na">N/A</span></td>
+                                <td>Thư viện dùng chung (BaseResponse, Exception, Utils)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="slide-number-badge">06</div>
+        </div>
+
+        <!-- SLIDE 7: BACKEND TECH -->
+        <div class="slide-container" id="slide-7">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">5. Công nghệ sử dụng — Backend</h2>
+                    <i class="fa-brands fa-java text-4xl text-slate-300"></i>
+                </div>
+                <div class="flex gap-6 h-full mt-2">
+                    <div class="w-1/3" data-stagger="1">
+                        <div class="tech-logo-panel">
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="tech-logo-tile">
+                                    <i class="fa-brands fa-java" style="color:#f89820;"></i>
+                                    <span>Java 21</span>
+                                </div>
+                                <div class="tech-logo-tile">
+                                    <i class="fa-solid fa-leaf" style="color:#6db33f;"></i>
+                                    <span>Spring Boot</span>
+                                </div>
+                                <div class="tech-logo-tile">
+                                    <i class="fa-solid fa-cloud" style="color:#6db33f;"></i>
+                                    <span>Spring Cloud</span>
+                                </div>
+                                <div class="tech-logo-tile">
+                                    <i class="fa-solid fa-diagram-project" style="color:#231f20;"></i>
+                                    <span>Apache Kafka</span>
+                                </div>
+                                <div class="tech-logo-tile">
+                                    <i class="fa-solid fa-database" style="color:#336791;"></i>
+                                    <span>PostgreSQL</span>
+                                </div>
+                                <div class="tech-logo-tile">
+                                    <i class="fa-solid fa-bolt" style="color:#dc382d;"></i>
+                                    <span>Redis</span>
+                                </div>
+                                <div class="tech-logo-tile">
+                                    <i class="fa-brands fa-docker" style="color:#2496ed;"></i>
+                                    <span>Docker</span>
+                                </div>
+                                <div class="tech-logo-tile">
+                                    <i class="fa-brands fa-aws" style="color:#ff9900;"></i>
+                                    <span>AWS S3</span>
+                                </div>
+                                <div class="tech-logo-tile">
+                                    <i class="fa-solid fa-file-code" style="color:#85ea2d;"></i>
+                                    <span>Swagger</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-2/3" data-stagger="2">
+                        <table class="tech-table text-sm">
+                            <tbody>
+                                <tr>
+                                    <th class="w-1/4" scope="row">Nền tảng</th>
+                                    <td>Java 21, Spring Boot 3.5.9, Maven (multi-module)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Microservices</th>
+                                    <td>Spring Cloud 2025.0, Eureka, Cloud Gateway, OpenFeign</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Broker & DB</th>
+                                    <td>Apache Kafka, PostgreSQL, Spring Data JPA / Hibernate</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Bảo mật</th>
+                                    <td>Spring Security, JWT (jjwt 0.13.0), Google OAuth2</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Cache</th>
+                                    <td>Redis (Dùng để thu hồi JWT khi đăng xuất)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Lưu trữ</th>
+                                    <td>AWS S3 (SDK v2) — ảnh sản phẩm (presigned URL)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Tiện ích</th>
+                                    <td>MapStruct 1.6.3, Lombok, SpringDoc OpenAPI (Swagger)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Triển khai</th>
+                                    <td>Docker, Docker Compose</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">07</div>
+        </div>
+
+        <!-- SLIDE 8: FRONTEND TECH -->
+        <div class="slide-container" id="slide-8">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">6. Công nghệ sử dụng — Frontend</h2>
+                    <i class="fa-brands fa-react text-4xl text-[#61DAFB]"></i>
+                </div>
+                <div class="flex flex-col justify-center h-full" data-stagger="1">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                        <div
+                            class="bg-slate-50 p-6 rounded-xl text-center border border-slate-200 hover:border-blue-400 transition-colors">
+                            <i class="fa-brands fa-react text-5xl text-[#61DAFB] mb-3"></i>
+                            <h4 class="font-bold text-slate-700">React 18</h4>
+                            <p class="text-xs text-slate-500">TypeScript + Vite 6</p>
+                        </div>
+                        <div
+                            class="bg-slate-50 p-6 rounded-xl text-center border border-slate-200 hover:border-cyan-400 transition-colors">
+                            <i class="fa-solid fa-wind text-5xl text-[#38BDF8] mb-3"></i>
+                            <h4 class="font-bold text-slate-700">TailwindCSS 4</h4>
+                            <p class="text-xs text-slate-500">Radix UI + Lucide</p>
+                        </div>
+                        <div
+                            class="bg-slate-50 p-6 rounded-xl text-center border border-slate-200 hover:border-brand-400 transition-colors">
+                            <i class="fa-solid fa-chart-pie text-5xl text-brand-400 mb-3"></i>
+                            <h4 class="font-bold text-slate-700">Recharts</h4>
+                            <p class="text-xs text-slate-500">Dashboard & Sonner (Toast)</p>
+                        </div>
+                        <div
+                            class="bg-slate-50 p-6 rounded-xl text-center border border-slate-200 hover:border-slate-400 transition-colors">
+                            <i class="fa-solid fa-network-wired text-5xl text-slate-400 mb-3"></i>
+                            <h4 class="font-bold text-slate-700">Fetch API</h4>
+                            <p class="text-xs text-slate-500">JWT Auto-refresh, Proxy</p>
+                        </div>
+                    </div>
+                    <div class="bg-brand-50 p-5 rounded-lg border border-brand-100 flex items-start gap-4">
+                        <i class="fa-solid fa-lightbulb text-2xl text-brand-500 mt-1"></i>
+                        <p class="text-slate-700"><strong>Kết nối Backend:</strong> Sử dụng Fetch API tiêu chuẩn kết hợp
+                            cơ chế tự động refresh JWT token. Phía dev sử dụng proxy <code>/api</code> trỏ thẳng tới API
+                            Gateway để giải quyết CORS trong môi trường local.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">08</div>
+        </div>
+
+        <!-- SLIDE 9: DESIGN PATTERNS -->
+        <div class="slide-container" id="slide-9">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">7. Các mẫu thiết kế (Design Patterns)</h2>
+                </div>
+                <div class="flex-1 flex flex-col justify-center">
+                    <div class="grid grid-cols-2 gap-8 dp-grid">
+                        <div class="flex items-start gap-3" data-stagger="1">
+                            <div
+                                class="w-10 h-10 shrink-0 bg-brand-100 rounded flex items-center justify-center text-brand-600">
+                                <i class="fa-solid fa-database"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Database per Service</h4>
+                                <p class="text-sm text-slate-600">Mỗi service một CSDL riêng, tách biệt hoàn toàn về dữ
+                                    liệu.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3" data-stagger="2">
+                            <div
+                                class="w-10 h-10 shrink-0 bg-slate-100 rounded flex items-center justify-center text-slate-600">
+                                <i class="fa-solid fa-shield-halved"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">API Gateway Auth</h4>
+                                <p class="text-sm text-slate-600">Loại bỏ header mạo danh từ client, inject
+                                    <code>X-Auth-Email</code> đáng tin cậy.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3" data-stagger="3">
+                            <div
+                                class="w-10 h-10 shrink-0 bg-blue-100 rounded flex items-center justify-center text-blue-600">
+                                <i class="fa-solid fa-arrows-spin"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Saga (Choreography)</h4>
+                                <p class="text-sm text-slate-600">Trừ/hoàn kho bất đồng bộ qua Kafka (OrderCreated →
+                                    trừ kho).</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3" data-stagger="4">
+                            <div
+                                class="w-10 h-10 shrink-0 bg-emerald-100 rounded flex items-center justify-center text-emerald-600">
+                                <i class="fa-solid fa-lock"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Idempotency</h4>
+                                <p class="text-sm text-slate-600">Bảng ProcessedEvent chống xử lý trùng lặp tin nhắn
+                                    Kafka.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3" data-stagger="5">
+                            <div
+                                class="w-10 h-10 shrink-0 bg-amber-100 rounded flex items-center justify-center text-amber-600">
+                                <i class="fa-solid fa-camera"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Denormalization / Snapshot</h4>
+                                <p class="text-sm text-slate-600">Lưu ảnh chụp giá/tên sản phẩm lúc đặt hàng để đơn
+                                    hàng bất biến.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3" data-stagger="6">
+                            <div
+                                class="w-10 h-10 shrink-0 bg-rose-100 rounded flex items-center justify-center text-rose-600">
+                                <i class="fa-solid fa-bolt"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Event-driven Architecture</h4>
+                                <p class="text-sm text-slate-600">Giao tiếp lỏng lẻo qua sự kiện, giảm phụ thuộc trực
+                                    tiếp giữa service.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dp-note text-center text-xs font-semibold text-slate-400 uppercase tracking-wide"
+                        data-stagger="7">
+                        6 pattern phối hợp cùng nhau để giải quyết bài toán tách rời dữ liệu & giao tiếp giữa các
+                        service
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">09</div>
+        </div>
+
+        <!-- SLIDE 10: GIAO TIẾP SERVICES -->
+        <div class="slide-container" id="slide-10">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">8. Giao tiếp giữa các Service</h2>
+                </div>
+
+                <div class="flex flex-col gap-6" data-stagger="1">
+                    <!-- Sync -->
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <div class="bg-slate-100 px-4 py-2 font-bold text-slate-700 flex items-center">
+                            <i class="fa-solid fa-link text-brand-500 mr-2"></i>Đồng bộ (Synchronous) — OpenFeign
+                        </div>
+                        <div class="p-4 bg-white text-sm text-slate-700 grid grid-cols-2 gap-2">
+                            <div class="bg-brand-50 p-2 rounded"><code>order &rarr; product</code>: Lấy giá + kiểm tồn
+                                kho lúc đặt.</div>
+                            <div class="bg-brand-50 p-2 rounded"><code>order &rarr; payment</code>: Khởi tạo thanh toán
+                                checkout.</div>
+                            <div class="bg-brand-50 p-2 rounded"><code>product &rarr; order</code>: Ràng buộc đánh giá
+                                (phải mua).</div>
+                            <div class="bg-brand-50 p-2 rounded"><code>order &rarr; product</code>: Lấy địa chỉ cửa hàng
+                                trả hàng.</div>
+                        </div>
+                    </div>
+
+                    <!-- Async -->
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <div class="bg-slate-100 px-4 py-2 font-bold text-slate-700 flex items-center">
+                            <i class="fa-solid fa-paper-plane text-slate-500 mr-2"></i>Bất đồng bộ (Async) — Apache
+                            Kafka
+                        </div>
+                        <table class="tech-table text-sm border-0">
+                            <thead>
+                                <tr>
+                                    <th>Topic Kafka</th>
+                                    <th>Phát (Producer)</th>
+                                    <th>Nhận & Xử lý (Consumer)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>order-events</code></td>
+                                    <td>order-service</td>
+                                    <td>product-service: trừ kho</td>
+                                </tr>
+                                <tr>
+                                    <td><code>order-cancelled</code></td>
+                                    <td>order-service</td>
+                                    <td>product-service: hoàn kho</td>
+                                </tr>
+                                <tr>
+                                    <td><code>payment-events</code></td>
+                                    <td>payment-service</td>
+                                    <td>order-service: update PAID</td>
+                                </tr>
+                                <tr>
+                                    <td><code>notification-events</code></td>
+                                    <td>auth-service</td>
+                                    <td>notification-service: gửi mail</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">10</div>
+        </div>
+
+        <!-- SLIDE 11: NGHIỆP VỤ -->
+        <div class="slide-container" id="slide-11">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">9. Các nghiệp vụ chính đã triển khai</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 biz-grid" data-stagger="1">
+
+                    <div class="bg-white border border-brand-100 shadow-sm rounded-xl p-5 hover:shadow-md transition">
+                        <div class="flex items-center mb-3">
+                            <i class="fa-solid fa-user-shield text-2xl text-brand-500 mr-3"></i>
+                            <h3 class="text-lg font-bold text-slate-800">Auth & Users</h3>
+                        </div>
+                        <ul class="text-sm text-slate-600 list-disc biz-list">
+                            <li>Đăng ký/đăng nhập (Local + Google).</li>
+                            <li>Refresh token, quên mật khẩu bằng OTP qua email.</li>
+                            <li>Đăng xuất thu hồi token (Redis blacklist).</li>
+                            <li>Quản lý sổ địa chỉ.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-5 hover:shadow-md transition">
+                        <div class="flex items-center mb-3">
+                            <i class="fa-solid fa-box-open text-2xl text-slate-500 mr-3"></i>
+                            <h3 class="text-lg font-bold text-slate-800">Product & Kho</h3>
+                        </div>
+                        <ul class="text-sm text-slate-600 list-disc biz-list">
+                            <li>Quản lý biến thể SKU, tồn kho theo cửa hàng.</li>
+                            <li>Tìm cửa hàng gần theo toạ độ Haversine.</li>
+                            <li>Chuyển kho nội bộ (State Machine).</li>
+                            <li>AWS S3 lưu ảnh sản phẩm.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white border border-blue-100 shadow-sm rounded-xl p-5 hover:shadow-md transition">
+                        <div class="flex items-center mb-3">
+                            <i class="fa-solid fa-cart-shopping text-2xl text-blue-500 mr-3"></i>
+                            <h3 class="text-lg font-bold text-slate-800">Order & Finance</h3>
+                        </div>
+                        <ul class="text-sm text-slate-600 list-disc biz-list">
+                            <li>Giỏ hàng, checkout VNPay/COD.</li>
+                            <li>Tích lũy và đổi điểm thưởng.</li>
+                            <li>Báo cáo doanh thu tài chính.</li>
+                            <li>Quy trình trả hàng & hoàn tiền.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white border border-emerald-100 shadow-sm rounded-xl p-5 hover:shadow-md transition">
+                        <div class="flex items-center mb-3">
+                            <i class="fa-solid fa-envelope-open-text text-2xl text-emerald-500 mr-3"></i>
+                            <h3 class="text-lg font-bold text-slate-800">Notification</h3>
+                        </div>
+                        <ul class="text-sm text-slate-600 list-disc biz-list">
+                            <li>Gửi email chào mừng tự động khi người dùng đăng ký mới.</li>
+                            <li>Chạy ngầm qua sự kiện Kafka.</li>
+                            <li>Không block luồng đăng ký của khách.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">11</div>
+        </div>
+
+        <!-- SLIDE 12: LUỒNG ĐẶT HÀNG -->
+        <div class="slide-container" id="slide-12">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">10. Luồng đặt hàng End-to-End</h2>
+                </div>
+                <div class="flow-wrap mt-3" data-stagger="1">
+
+                    <!-- Chuỗi trạng thái đơn hàng -->
+                    <div class="status-bar">
+                        <span class="status-chip status-c1">CART</span>
+                        <i class="fa-solid fa-arrow-right status-arrow"></i>
+                        <span class="status-chip status-c2">CREATED</span>
+                        <i class="fa-solid fa-arrow-right status-arrow"></i>
+                        <span class="status-chip status-c3">PAID</span>
+                        <i class="fa-solid fa-arrow-right status-arrow"></i>
+                        <span class="status-chip status-c4">SHIPPING</span>
+                        <i class="fa-solid fa-arrow-right status-arrow"></i>
+                        <span class="status-chip status-c5">DELIVERED</span>
+                        <i class="fa-solid fa-arrow-right status-arrow"></i>
+                        <span class="status-chip status-c6">COMPLETED</span>
+                    </div>
+
+                    <!-- Chú giải Sync / Async -->
+                    <div class="flow-legend">
+                        <span><i class="fa-solid fa-tag flow-legend-sync"></i>Feign (Sync)</span>
+                        <span><i class="fa-solid fa-tag flow-legend-async"></i>Kafka Event (Async)</span>
+                    </div>
+
+                    <!-- Hàng 1: Thêm giỏ → Tạo đơn → Khóa kho → Checkout -->
+                    <div class="flow-row">
+                        <div class="flow-node">
+                            <div class="flow-node-num">1</div>
+                            <i class="fa-solid fa-cart-shopping flow-node-icon"></i>
+                            <h4>Thêm giỏ</h4>
+                            <p>Khách chọn SKU, cửa hàng → Thêm vào giỏ.</p>
+                        </div>
+                        <i class="fa-solid fa-arrow-right flow-arrow"></i>
+                        <div class="flow-node">
+                            <div class="flow-node-num">2</div>
+                            <i class="fa-solid fa-file-invoice flow-node-icon"></i>
+                            <h4>Tạo đơn</h4>
+                            <span class="flow-tag flow-tag-sync">Feign → Product</span>
+                            <p>Order gọi Feign Product kiểm tra giá & tồn kho thực tế.</p>
+                        </div>
+                        <i class="fa-solid fa-arrow-right flow-arrow"></i>
+                        <div class="flow-node">
+                            <div class="flow-node-num">3</div>
+                            <i class="fa-solid fa-warehouse flow-node-icon"></i>
+                            <h4>Khóa kho</h4>
+                            <span class="flow-tag flow-tag-async">Kafka event</span>
+                            <p>Order phát event Kafka → Product trừ kho.</p>
+                        </div>
+                        <i class="fa-solid fa-arrow-right flow-arrow"></i>
+                        <div class="flow-node">
+                            <div class="flow-node-num">4</div>
+                            <i class="fa-solid fa-credit-card flow-node-icon"></i>
+                            <h4>Checkout</h4>
+                            <span class="flow-tag flow-tag-sync">Feign → Payment</span>
+                            <p>Gọi Feign Payment khởi tạo VNPay/COD.</p>
+                        </div>
+                    </div>
+
+                    <div class="flow-vconnector"><i class="fa-solid fa-arrow-down"></i></div>
+
+                    <!-- Hàng 2: Update trạng thái → Giao hàng, nhánh tùy chọn Trả hàng -->
+                    <div class="flow-row">
+                        <div class="flow-node">
+                            <div class="flow-node-num">5</div>
+                            <i class="fa-solid fa-arrows-rotate flow-node-icon"></i>
+                            <h4>Update trạng thái</h4>
+                            <span class="flow-tag flow-tag-async">Kafka event</span>
+                            <p>Thanh toán xong → event → Đơn sang PAID.</p>
+                        </div>
+                        <i class="fa-solid fa-arrow-right flow-arrow"></i>
+                        <div class="flow-node">
+                            <div class="flow-node-num">6</div>
+                            <i class="fa-solid fa-truck flow-node-icon"></i>
+                            <h4>Giao hàng</h4>
+                            <p>Admin chuyển SHIPPING → DELIVERED → COMPLETED (Cộng điểm).</p>
+                        </div>
+                        <div class="flow-branch-connector">
+                            <span>Nhánh tùy chọn</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                        <div class="flow-node flow-node-optional">
+                            <div class="flow-node-num flow-node-num-muted">7</div>
+                            <i class="fa-solid fa-rotate-left flow-node-icon flow-node-icon-muted"></i>
+                            <h4 class="text-slate-500">Trả hàng (nếu có)</h4>
+                            <span class="flow-tag flow-tag-async">Kafka event</span>
+                            <p class="text-slate-500">Yêu cầu → Duyệt → Hoàn kho (Kafka) → Hoàn tiền.</p>
+                        </div>
+                    </div>
+
+                    <!-- Dải nhận xét nhanh -->
+                    <div class="flow-insight-bar">
+                        <div class="flow-insight-item">
+                            <i class="fa-solid fa-list-ol"></i>
+                            <span><strong>7</strong> bước, 6 bước chính + 1 nhánh tùy chọn</span>
+                        </div>
+                        <div class="flow-insight-item">
+                            <i class="fa-solid fa-tag flow-legend-sync"></i>
+                            <span><strong>2</strong> giao tiếp Sync (Feign)</span>
+                        </div>
+                        <div class="flow-insight-item">
+                            <i class="fa-solid fa-tag flow-legend-async"></i>
+                            <span><strong>3</strong> sự kiện Async (Kafka)</span>
+                        </div>
+                        <div class="flow-insight-item">
+                            <i class="fa-solid fa-route"></i>
+                            <span>Critical path: <strong>Thêm giỏ → Tạo đơn → Khóa kho → Checkout → Update trạng
+                                    thái → Giao hàng</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">12</div>
+        </div>
+
+        <!-- SLIDE 13: BẢO MẬT & PHÂN QUYỀN -->
+        <div class="slide-container" id="slide-13">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">11. Bảo mật & Phân quyền</h2>
+                    <i class="fa-solid fa-shield-cat text-3xl text-brand-300"></i>
+                </div>
+                <div class="grid grid-cols-3 gap-6 mt-6" data-stagger="1">
+                    <div class="bg-white border border-brand-100 shadow-sm rounded-xl p-6 hover:shadow-md transition">
+                        <div
+                            class="w-12 h-12 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-key"></i></div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">JWT Tập trung</h3>
+                        <p class="text-sm text-slate-600">Verify token duy nhất tại API Gateway. Bóc tách payload và
+                            truyền xuống downstream dạng <code
+                                class="text-xs text-brand-600 bg-brand-50 px-1 rounded">X-Auth-Role</code>.</p>
+                    </div>
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-6 hover:shadow-md transition">
+                        <div
+                            class="w-12 h-12 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-ban"></i></div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">Thu hồi Token</h3>
+                        <p class="text-sm text-slate-600">Redis Blacklist với TTL = thời gian sống còn lại của token khi
+                            đăng xuất. Cơ chế fail-open nếu Redis gặp sự cố.</p>
+                    </div>
+                    <div class="bg-white border border-emerald-100 shadow-sm rounded-xl p-6 hover:shadow-md transition">
+                        <div
+                            class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-user-lock"></i></div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">Phân quyền Role-based</h3>
+                        <p class="text-sm text-slate-600">Customer / Admin / Manager kiểm soát qua <code
+                                class="text-xs text-emerald-600 bg-emerald-50 px-1 rounded">@PreAuthorize</code> và
+                            <code class="text-xs text-emerald-600 bg-emerald-50 px-1 rounded">GatewayAuthContext</code>.
+                        </p>
+                    </div>
+                </div>
+                <div class="bg-brand-50 p-5 rounded-lg border border-brand-100 flex items-start gap-4 mt-8"
+                    data-stagger="2">
+                    <i class="fa-solid fa-lightbulb text-2xl text-brand-500 mt-1"></i>
+                    <p class="text-slate-700"><strong>Điểm mấu chốt:</strong> toàn bộ logic xác thực chỉ nằm ở một nơi
+                        duy nhất — API Gateway. Các service downstream không cần biết cách verify JWT, chỉ tin tưởng
+                        header đã được xác thực.</p>
+                </div>
+            </div>
+            <div class="slide-number-badge">13</div>
+        </div>
+
+        <!-- SLIDE 14: KẾT QUẢ ĐẠT ĐƯỢC -->
+        <div class="slide-container" id="slide-14">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">12. Kết quả đạt được</h2>
+                    <i class="fa-solid fa-trophy text-3xl text-brand-300"></i>
+                </div>
+                <div class="flex-1 flex flex-col justify-center gap-10">
+                    <div class="grid grid-cols-4 gap-5" data-stagger="1">
+                        <div class="bg-brand-50 border border-brand-100 rounded-2xl p-6 result-tile text-center">
+                            <div class="text-5xl font-extrabold text-brand-600 mb-2">8</div>
+                            <p class="text-sm text-slate-700">Module độc lập chạy trên Docker Compose</p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 result-tile text-center">
+                            <div class="text-5xl font-extrabold text-slate-700 mb-2">100%</div>
+                            <p class="text-sm text-slate-700">Domain nghiệp vụ khớp giao diện React</p>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 result-tile text-center">
+                            <div class="text-5xl font-extrabold text-emerald-600 mb-2">68/68</div>
+                            <p class="text-sm text-slate-700">Luồng API End-to-End đạt PASS trên DB sạch</p>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-100 rounded-2xl p-6 result-tile text-center">
+                            <div class="text-5xl font-extrabold text-blue-600 mb-2">3</div>
+                            <p class="text-sm text-slate-700">Vai trò (Customer/Admin/Manager) trải nghiệm toàn vẹn</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 flex items-start gap-4"
+                        data-stagger="2">
+                        <i class="fa-solid fa-magnifying-glass text-2xl text-slate-500 mt-1"></i>
+                        <p class="text-slate-700">Quá trình kiểm thử đã phát hiện & sửa nhiều lỗi tích hợp thực tế mà
+                            biên dịch không bắt được: cấu hình Eureka, lệch tên field giữa service, phân quyền, luồng
+                            thanh toán…</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">14</div>
+        </div>
+
+        <!-- SLIDE 15: CÔNG NGHỆ CÒN THIẾU -->
+        <div class="slide-container" id="slide-15">
+            <div class="slide-content">
+                <div class="slide-header">
+                    <h2 class="text-3xl text-slate-800">13. Công nghệ còn thiếu & Hướng phát triển</h2>
+                    <i class="fa-solid fa-road text-3xl text-brand-300"></i>
+                </div>
+                <div class="flex h-full gap-10 mt-4">
+                    <div class="w-1/2 flex flex-col justify-center" data-stagger="1">
+                        <ul class="space-y-4 text-slate-700">
+                            <li class="flex items-start"><span
+                                    class="font-bold text-brand-600 w-40 shrink-0">Observability:</span><span>Cần
+                                    ELK/Loki (Log), Zipkin/Jaeger (Tracing), Prometheus + Grafana (Metrics).</span></li>
+                            <li class="flex items-start"><span
+                                    class="font-bold text-brand-600 w-40 shrink-0">Resilience:</span><span>Cần
+                                    Resilience4j — Circuit Breaker, Retry, Bulkhead, Rate Limiter.</span></li>
+                            <li class="flex items-start"><span class="font-bold text-brand-600 w-40 shrink-0">CI/CD &
+                                    K8s:</span><span>Thay thế Docker Compose bằng Kubernetes + Helm, GitHub
+                                    Actions/Jenkins.</span></li>
+                            <li class="flex items-start"><span class="font-bold text-brand-600 w-40 shrink-0">Automation
+                                    Test:</span><span>Cần JUnit 5 + Mockito, Testcontainers, Pact (contract
+                                    test).</span></li>
+                            <li class="flex items-start"><span class="font-bold text-brand-600 w-40 shrink-0">Tính
+                                    năng:</span><span>Tích hợp vận chuyển GHN, Elasticsearch tìm kiếm, WebSocket/SSE
+                                    realtime.</span></li>
+                        </ul>
+                    </div>
+                    <div class="w-1/2" data-stagger="2">
+                        <img src="kinderland_assets/images/slide14-server.jpg" class="img-mask"
+                            alt="Server infrastructure">
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">15</div>
+        </div>
+
+        <!-- SLIDE 16: KẾT LUẬN -->
+        <div class="slide-container" id="slide-16">
+            <div class="slide-content justify-center">
+                <div class="concl-card bg-slate-900 rounded-2xl p-12 text-white flex flex-col justify-between relative overflow-hidden h-full"
+                    data-stagger="1">
+                    <div class="absolute top-0 right-0 p-10 opacity-10"><i
+                            class="fa-solid fa-flag-checkered text-9xl concl-flag"></i></div>
+                    <div class="absolute -bottom-16 -left-16 concl-glow-red"></div>
+                    <div class="absolute -top-24 right-1/3 concl-glow-pink"></div>
+
+                    <div class="relative z-10">
+                        <h2 class="text-3xl text-brand-400 mb-6 font-bold">14. Kết luận</h2>
+                        <p class="text-slate-300 mb-4 leading-relaxed text-lg max-w-2xl">
+                            Dự án <strong>Kinderland</strong> minh hoạ trọn vẹn vòng đời chuyển đổi từ Modular Monolith
+                            sang Microservices, áp dụng thực tiễn các chuẩn công nghiệp:
+                        </p>
+                        <div class="grid grid-cols-3 gap-3 mb-6 max-w-2xl">
+                            <div class="concl-tag"><i class="fa-solid fa-database"></i><span>Database per
+                                    Service</span></div>
+                            <div class="concl-tag"><i class="fa-solid fa-door-open"></i><span>API Gateway</span></div>
+                            <div class="concl-tag"><i class="fa-solid fa-network-wired"></i><span>Service
+                                    Discovery</span></div>
+                            <div class="concl-tag"><i class="fa-solid fa-arrows-spin"></i><span>Kafka Saga</span>
+                            </div>
+                            <div class="concl-tag"><i class="fa-solid fa-lock"></i><span>Idempotency</span></div>
+                            <div class="concl-tag"><i class="fa-solid fa-camera"></i><span>Snapshot/Denormalization</span>
+                            </div>
+                        </div>
+                        <p class="text-slate-400 border-l-4 border-brand-500 pl-3 max-w-2xl">
+                            Hệ thống đã chạy ổn định end-to-end (Frontend ↔ 6 microservice ↔ Kafka/Redis/PostgreSQL).
+                            Đây là nền tảng vững chắc để tiến tới Production bằng cách bổ sung Observability,
+                            Resilience, CI/CD và Kubernetes.
+                        </p>
+                    </div>
+
+                    <div class="relative z-10 text-center">
+                        <h3 class="concl-thanks text-6xl font-extrabold">— Cảm ơn đã lắng nghe —</h3>
+                        <p class="concl-footnote">Kinderland · Modular Monolith → Microservices</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-number-badge">16</div>
+        </div>
+
+    </div>
+
+    <!-- JS ĐIỀU KHIỂN TRÌNH CHIẾU -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const body = document.getElementById('body');
+            const slides = document.querySelectorAll('.slide-container');
+            const btnScroll = document.getElementById('btnScrollMode');
+            const btnPres = document.getElementById('btnPresentationMode');
+            const arrows = document.getElementById('presentationArrows');
+            const prevBtn = document.getElementById('prevSlide');
+            const nextBtn = document.getElementById('nextSlide');
+            const exitBtn = document.getElementById('exitPresentation');
+            const slideIndicator = document.getElementById('slideIndicator');
+            const progressBar = document.getElementById('progressBar');
+            const controlPanel = document.getElementById('controlPanel');
+
+            let isPresentationMode = false;
+            let idleTimer = null;
+
+            // Tự ẩn control panel sau 3s không thao tác trong Presentation Mode
+            function resetIdleTimer() {
+                controlPanel.classList.remove('controls-idle');
+                clearTimeout(idleTimer);
+                if (isPresentationMode) {
+                    idleTimer = setTimeout(() => controlPanel.classList.add('controls-idle'), 3000);
+                }
+            }
+            document.addEventListener('mousemove', resetIdleTimer);
+            document.addEventListener('keydown', resetIdleTimer);
+            let currentSlideIndex = 0;
+            const totalSlides = slides.length;
+
+            // Xử lý Scale màn hình khi ở chế độ Trình chiếu
+            function scaleSlide() {
+                if (!isPresentationMode) {
+                    slides.forEach(slide => slide.style.transform = 'none');
+                    return;
+                }
+                const activeSlide = slides[currentSlideIndex];
+                // Tính tỉ lệ scale dựa trên màn hình hiện tại so với 1280x720
+                const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+                activeSlide.style.setProperty('--slide-scale', scale); // Lưu CSS var cho animation
+                activeSlide.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            }
+
+            window.addEventListener('resize', scaleSlide);
+
+            // Cập nhật UI controls
+            function updateUI() {
+                slideIndicator.textContent = `${currentSlideIndex + 1} / ${totalSlides}`;
+                progressBar.style.width = `${((currentSlideIndex + 1) / totalSlides) * 100}%`;
+
+                // Hiệu ứng stagger (phần tử xuất hiện lần lượt)
+                const activeSlide = slides[currentSlideIndex];
+                const staggers = activeSlide.querySelectorAll('[data-stagger]');
+                staggers.forEach(el => el.classList.remove('stagger-visible'));
+
+                if (isPresentationMode) {
+                    setTimeout(() => {
+                        staggers.forEach((el, index) => {
+                            setTimeout(() => {
+                                el.classList.add('stagger-visible');
+                            }, 150 * (index + 1));
+                        });
+                    }, 300); // Chờ slide trượt ra giữa rồi mới hiện chữ
+                }
+            }
+
+            // Chuyển tới slide cụ thể
+            function goToSlide(index, direction = 'right') {
+                if (index < 0 || index >= totalSlides) return;
+
+                slides.forEach(slide => {
+                    slide.classList.remove('active-slide', 'slide-enter-right', 'slide-enter-left');
+                });
+
+                currentSlideIndex = index;
+                const newSlide = slides[currentSlideIndex];
+                newSlide.classList.add('active-slide');
+
+                if (isPresentationMode) {
+                    newSlide.classList.add(direction === 'right' ? 'slide-enter-right' : 'slide-enter-left');
+                    scaleSlide();
+                }
+
+                updateUI();
+            }
+
+            function nextSlide() {
+                if (currentSlideIndex < totalSlides - 1) goToSlide(currentSlideIndex + 1, 'right');
+            }
+
+            function prevSlide() {
+                if (currentSlideIndex > 0) goToSlide(currentSlideIndex - 1, 'left');
+            }
+
+            // Bật chế độ Trình chiếu
+            btnPres.addEventListener('click', () => {
+                isPresentationMode = true;
+                body.classList.add('presentation-active');
+                btnScroll.classList.remove('hidden');
+                btnPres.classList.add('hidden');
+                arrows.classList.remove('hidden');
+                arrows.classList.add('flex');
+
+                // Xác định slide đang ở trong tầm nhìn (viewport) khi cuộn để mở đúng slide đó
+                if (!body.classList.contains('presentation-active')) {
+                    // Logic cơ bản: lấy slide 0, hoặc có thể làm thuật toán IntersectionObserver
+                }
+                goToSlide(currentSlideIndex, 'right');
+                resetIdleTimer();
+            });
+
+            // Về chế độ Cuộn
+            function exitPresentation() {
+                isPresentationMode = false;
+                body.classList.remove('presentation-active');
+                btnScroll.classList.add('hidden');
+                btnPres.classList.remove('hidden');
+                arrows.classList.add('hidden');
+                arrows.classList.remove('flex');
+                progressBar.style.width = '0';
+                clearTimeout(idleTimer);
+                controlPanel.classList.remove('controls-idle');
+
+                // Trả các slide về hiển thị block bình thường
+                slides.forEach(slide => {
+                    slide.classList.remove('active-slide', 'slide-enter-right', 'slide-enter-left');
+                    slide.style.transform = 'none';
+                    // Hiện lại tất cả stagger
+                    const staggers = slide.querySelectorAll('[data-stagger]');
+                    staggers.forEach(el => el.classList.add('stagger-visible'));
+                });
+
+                // Cuộn tới slide đang xem dở
+                slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            btnScroll.addEventListener('click', exitPresentation);
+            exitBtn.addEventListener('click', exitPresentation);
+            nextBtn.addEventListener('click', nextSlide);
+            prevBtn.addEventListener('click', prevSlide);
+
+            // Bắt sự kiện phím
+            document.addEventListener('keydown', (e) => {
+                if (!isPresentationMode) return;
+
+                if (e.key === 'ArrowRight' || e.key === ' ') {
+                    e.preventDefault();
+                    nextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    prevSlide();
+                } else if (e.key === 'Escape') {
+                    exitPresentation();
+                }
+            });
+
+            // Init mặc định (hiện sẵn các hiệu ứng stagger khi ở Scroll Mode)
+            slides.forEach(slide => {
+                const staggers = slide.querySelectorAll('[data-stagger]');
+                staggers.forEach(el => el.classList.add('stagger-visible'));
+            });
+            btnScroll.classList.add('hidden');
+        });
+    </script>
+</body>
+
+</html>
